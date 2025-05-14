@@ -21,7 +21,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "railway:start": "prisma generate && npm run build && npm run start:prod"
+    "railway:start": "prisma generate && npm run build && ls -la dist && npm run start:prod"
   },
   "dependencies": {
     "@nestjs/common": "10.0.0",
