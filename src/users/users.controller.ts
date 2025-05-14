@@ -1,61 +1,52 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { RoleType } from '../roles/role-type.enum';
 import { CreateUserDto } from './dto/create-user.dto';
+import { Roles } from '../login/roles.decorator';
+import { UserRole } from '../login/roles.enum';
+import { LoginGuard } from '../login/login.guard';
+import { RolesGuard } from '../login/roles.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Users')
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
+@UseGuards(LoginGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(RoleType.ADMIN)
-  async create(@Body() createUserDto: CreateUserDto) {
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiResponse({ status: 201, description: 'User successfully created.' })
+  create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  @Roles('ADMIN')
   @ApiOperation({ summary: 'Get all users' })
-  @ApiResponse({ status: 200, description: 'Return all users' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  findAll() {
-    return this.usersService.findAll();
+  @ApiResponse({ status: 200, description: 'Return all users.' })
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.usersService.findAll(paginationDto);
   }
 
   @Get(':id')
-  @Roles('ADMIN')
-  @ApiOperation({ summary: 'Get user by id' })
-  @ApiResponse({ status: 200, description: 'Return user by id' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiOperation({ summary: 'Get a user by id' })
+  @ApiResponse({ status: 200, description: 'Return the user.' })
   findOne(@Param('id') id: string) {
-    return this.usersService.findById(id);
+    return this.usersService.findOne(id);
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
-  @ApiOperation({ summary: 'Update user' })
-  @ApiResponse({ status: 200, description: 'User updated successfully' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiOperation({ summary: 'Update a user' })
+  @ApiResponse({ status: 200, description: 'User successfully updated.' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
-  @ApiOperation({ summary: 'Delete user' })
-  @ApiResponse({ status: 200, description: 'User deleted successfully' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiOperation({ summary: 'Delete a user' })
+  @ApiResponse({ status: 200, description: 'User successfully deleted.' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }

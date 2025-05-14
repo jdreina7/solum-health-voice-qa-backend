@@ -1,78 +1,104 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RolesService } from '../roles/roles.service';
-import { RoleType } from '../roles/role-type.enum';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import type { User } from '../../prisma/generated/client';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private prisma: PrismaService,
-    private rolesService: RolesService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(data: { email: string; password: string; name: string; role: RoleType }): Promise<User> {
-    // Obtener el rol especificado
-    const role = await this.rolesService.findByName(data.role);
-    if (!role) {
-      throw new Error('Role not found');
+  async create(createUserDto: CreateUserDto) {
+    const existingUser = await this.findByEmail(createUserDto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
     }
 
-    // Hashear la contraseña
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    // Buscar el UUID del rol
+    const roleRecord = await this.prisma.client.role.findFirst({ where: { name: createUserDto.role } });
+    if (!roleRecord) {
+      throw new BadRequestException('Role not found');
+    }
 
-    // Crear el usuario
-    return this.prisma.user.create({
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+    return this.prisma.client.user.create({
       data: {
-        email: data.email,
+        email: createUserDto.email,
         password: hashedPassword,
-        name: data.name,
-        roleId: role.id,
+        name: createUserDto.name,
+        roleId: roleRecord.id,
       },
     });
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
+  async findAll(paginationDto: PaginationDto): Promise<PaginatedResponse<any>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [total, data] = await Promise.all([
+      this.prisma.client.user.count(),
+      this.prisma.client.user.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
+
+  async findByEmail(email: string) {
+    return this.prisma.client.user.findUnique({
       where: { email },
-      include: { role: true },
     });
   }
 
-  async findById(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      include: {
-        role: true,
-      },
-    });
+  async validateUser(email: string, password: string) {
+    const user = await this.findByEmail(email);
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const { password, ...result } = user;
+      return result;
+    }
+    return null;
+  }
 
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+  async findOne(id: string) {
+    return this.prisma.client.user.findUnique({
+      where: { id },
+    });
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const data: any = { ...updateUserDto };
+    if (updateUserDto.password) {
+      data.password = await bcrypt.hash(updateUserDto.password, 10);
     }
 
-    return user;
-  }
-
-  async findAll(): Promise<User[]> {
-    return this.prisma.user.findMany({
-      include: { role: true },
-    });
-  }
-
-  async update(id: string, data: any) {
-    return this.prisma.user.update({
+    return this.prisma.client.user.update({
       where: { id },
       data,
-      include: {
-        role: true,
-      },
     });
   }
 
   async remove(id: string) {
-    return this.prisma.user.delete({
+    return this.prisma.client.user.delete({
       where: { id },
     });
   }

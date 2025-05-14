@@ -1,14 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Roles } from '../login/roles.decorator';
+import { UserRole } from '../login/roles.enum';
+import { LoginGuard } from '../login/login.guard';
+import { RolesGuard } from '../login/roles.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Companies')
 @Controller('companies')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@UseGuards(LoginGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
 
@@ -16,42 +20,41 @@ export class CompanyController {
   @ApiOperation({ summary: 'Create a new company' })
   @ApiResponse({ status: 201, description: 'Company created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   create(@Body() createCompanyDto: CreateCompanyDto) {
     return this.companyService.create(createCompanyDto);
   }
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @ApiOperation({ summary: 'Get all companies' })
   @ApiResponse({ status: 200, description: 'Return all companies' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  findAll() {
-    return this.companyService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.companyService.findAll(paginationDto);
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.EVALUATOR)
   @ApiOperation({ summary: 'Get company by id' })
   @ApiResponse({ status: 200, description: 'Return company by id' })
   @ApiResponse({ status: 404, description: 'Company not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findOne(@Param('id') id: string) {
     return this.companyService.findOne(id);
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update company' })
   @ApiResponse({ status: 200, description: 'Company updated successfully' })
   @ApiResponse({ status: 404, description: 'Company not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
     return this.companyService.update(id, updateCompanyDto);
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete company' })
   @ApiResponse({ status: 200, description: 'Company deleted successfully' })
   @ApiResponse({ status: 404, description: 'Company not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   remove(@Param('id') id: string) {
     return this.companyService.remove(id);
   }
