@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install --legacy-peer-deps"
+buildCommand = "npm ci --legacy-peer-deps"
 nixpacksNodeVersion = "20.11.0"
 
 [deploy]
