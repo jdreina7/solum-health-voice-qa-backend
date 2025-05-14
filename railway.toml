@@ -1,6 +1,7 @@
 [build]
 builder = "nixpacks"
 buildCommand = "npm install"
+nixpacksNodeVersion = "20.11.0"
 
 [deploy]
 startCommand = "npm run railway:start"
