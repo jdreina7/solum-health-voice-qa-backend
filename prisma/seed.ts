@@ -4,31 +4,28 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Crear roles por defecto
+  // Crear roles
   const roles = [
-    {
-      name: RoleType.USER,
-      description: 'Regular user with basic access',
-    },
-    {
-      name: RoleType.EVALUATOR,
-      description: 'User with evaluation permissions',
-    },
-    {
-      name: RoleType.ADMIN,
-      description: 'Administrator with full access',
-    },
+    { name: RoleType.USER, description: 'Regular user' },
+    { name: RoleType.EVALUATOR, description: 'Call evaluator' },
+    { name: RoleType.ADMIN, description: 'System administrator' },
   ];
 
   for (const role of roles) {
-    await prisma.role.upsert({
-      where: { id: role.name.toLowerCase() },
-      update: {},
-      create: {
-        id: role.name.toLowerCase(),
-        ...role,
-      },
+    const existingRole = await prisma.role.findFirst({
+      where: { name: role.name }
     });
+
+    if (existingRole) {
+      await prisma.role.update({
+        where: { id: existingRole.id },
+        data: role
+      });
+    } else {
+      await prisma.role.create({
+        data: role
+      });
+    }
   }
 
   // Crear usuarios admin iniciales

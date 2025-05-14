@@ -2,13 +2,17 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } f
 import { CallService } from './call.service';
 import { CreateCallDto } from './dto/create-call.dto';
 import { UpdateCallDto } from './dto/update-call.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Roles } from '../login/roles.decorator';
+import { UserRole } from '../login/roles.enum';
+import { LoginGuard } from '../login/login.guard';
+import { RolesGuard } from '../login/roles.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Calls')
 @Controller('calls')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@UseGuards(LoginGuard, RolesGuard)
+@Roles(UserRole.USER, UserRole.EVALUATOR, UserRole.ADMIN)
 export class CallController {
   constructor(private readonly callService: CallService) {}
 
@@ -16,7 +20,6 @@ export class CallController {
   @ApiOperation({ summary: 'Create a new call' })
   @ApiResponse({ status: 201, description: 'Call created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   create(@Body() createCallDto: CreateCallDto) {
     return this.callService.create(createCallDto);
   }
@@ -24,19 +27,25 @@ export class CallController {
   @Get()
   @ApiOperation({ summary: 'Get all calls' })
   @ApiResponse({ status: 200, description: 'Return all calls' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  findAll(@Query('agentId') agentId?: string) {
-    if (agentId) {
-      return this.callService.findByAgent(agentId);
-    }
-    return this.callService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.callService.findAll(paginationDto);
+  }
+
+  @Get('agent/:agentId')
+  @ApiOperation({ summary: 'Get calls by agent' })
+  @ApiResponse({ status: 200, description: 'Return calls by agent' })
+  @ApiResponse({ status: 404, description: 'Agent not found' })
+  findByAgent(
+    @Param('agentId') agentId: string,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.callService.findByAgent(agentId, paginationDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get call by id' })
   @ApiResponse({ status: 200, description: 'Return call by id' })
   @ApiResponse({ status: 404, description: 'Call not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findOne(@Param('id') id: string) {
     return this.callService.findOne(id);
   }
@@ -45,7 +54,6 @@ export class CallController {
   @ApiOperation({ summary: 'Update call' })
   @ApiResponse({ status: 200, description: 'Call updated successfully' })
   @ApiResponse({ status: 404, description: 'Call not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   update(@Param('id') id: string, @Body() updateCallDto: UpdateCallDto) {
     return this.callService.update(id, updateCallDto);
   }
@@ -54,7 +62,6 @@ export class CallController {
   @ApiOperation({ summary: 'Delete call' })
   @ApiResponse({ status: 200, description: 'Call deleted successfully' })
   @ApiResponse({ status: 404, description: 'Call not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   remove(@Param('id') id: string) {
     return this.callService.remove(id);
   }

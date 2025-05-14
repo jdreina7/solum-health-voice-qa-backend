@@ -1,59 +1,55 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { GoogleSheetsService } from '../google-sheets/google-sheets.service';
-import * as xlsx from 'xlsx';
-
-interface ExcelRow {
-  Question: string;
-  Answer: string;
-}
+import { google } from 'googleapis';
+import * as XLSX from 'xlsx';
 
 @Injectable()
 export class ImportService {
   constructor(
     private prisma: PrismaService,
-    private googleSheetsService: GoogleSheetsService,
   ) {}
 
   async importFromExcel(file: Express.Multer.File) {
-    if (!file.originalname.match(/\.(xlsx|xls)$/)) {
-      throw new Error('Invalid Excel format');
-    }
+    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(worksheet);
 
-    const workbook = xlsx.read(file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json<ExcelRow>(worksheet);
-
-    if (!this.validateExcelData(data)) {
-      throw new Error('Invalid data format. Required columns: Question, Answer');
-    }
-
-    return this.prisma.question.createMany({
-      data: data.map(row => ({
-        question: row.Question,
-        answer: row.Answer,
+    return this.prisma.client.question.createMany({
+      data: data.map((row: any) => ({
+        question: row.question,
+        answer: row.answer,
       })),
     });
   }
 
   async importFromGoogleSheets(sheetId: string, sheetName: string) {
-    const data = await this.googleSheetsService.getSheetData(sheetId, sheetName);
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    });
 
-    if (!this.validateExcelData(data)) {
-      throw new Error('Invalid data format. Required columns: Question, Answer');
+    const sheets = google.sheets({ version: 'v4', auth });
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: sheetName,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      throw new Error('No data found in sheet');
     }
 
-    return this.prisma.question.createMany({
-      data: data.map(row => ({
-        question: row.Question,
-        answer: row.Answer,
-      })),
-    });
-  }
+    const [headers, ...data] = rows;
+    const questions = data.map((row: any[]) => ({
+      question: row[headers.indexOf('question')],
+      answer: row[headers.indexOf('answer')],
+    }));
 
-  private validateExcelData(data: ExcelRow[]): boolean {
-    if (!data.length) return false;
-    return data.every(row => row.Question && row.Answer);
+    return this.prisma.client.question.createMany({
+      data: questions,
+    });
   }
 } 

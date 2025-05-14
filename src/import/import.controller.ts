@@ -1,14 +1,14 @@
-import { Controller, Post, UseInterceptors, UploadedFile, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ImportService } from './import.service';
 import { ImportDto } from './dto/import.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Roles } from '../login/roles.decorator';
+import { UserRole } from '../login/roles.enum';
 
 @ApiTags('import')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('import')
+@Roles(UserRole.ADMIN)
 export class ImportController {
   constructor(private readonly importService: ImportService) {}
 
