@@ -22,7 +22,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node -P prisma/tsconfig.json prisma/seed.ts",
-    "railway:start": "prisma generate && npm run build && ls -la dist && npm run start:prod"
+    "railway:start": "npm run prisma:generate && npm run build && npm run start:prod"
   },
   "dependencies": {
     "@nestjs/common": "10.0.0",
