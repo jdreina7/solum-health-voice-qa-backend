@@ -1,40 +1,42 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RoleType } from '@prisma/client';
+import { RolesService } from '../roles/roles.service';
+import { RoleType } from '../roles/role-type.enum';
+import * as bcrypt from 'bcrypt';
+import type { User } from '../../prisma/generated/client';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private rolesService: RolesService,
+  ) {}
 
-  async create(data: { email: string; password: string; name: string; role: RoleType }) {
+  async create(data: { email: string; password: string; name: string; role: RoleType }): Promise<User> {
     // Obtener el rol especificado
-    const role = await this.prisma.role.findFirst({
-      where: { name: data.role },
-    });
-
+    const role = await this.rolesService.findByName(data.role);
     if (!role) {
-      throw new Error(`Role ${data.role} not found`);
+      throw new Error('Role not found');
     }
 
+    // Hashear la contraseña
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    // Crear el usuario
     return this.prisma.user.create({
       data: {
         email: data.email,
-        password: data.password,
+        password: hashedPassword,
         name: data.name,
         roleId: role.id,
-      },
-      include: {
-        role: true,
       },
     });
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },
-      include: {
-        role: true,
-      },
+      include: { role: true },
     });
   }
 
@@ -53,11 +55,9 @@ export class UsersService {
     return user;
   }
 
-  async findAll() {
+  async findAll(): Promise<User[]> {
     return this.prisma.user.findMany({
-      include: {
-        role: true,
-      },
+      include: { role: true },
     });
   }
 

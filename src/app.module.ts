@@ -12,6 +12,8 @@ import { ImportModule } from './import/import.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
+import { GoogleSheetsModule } from './google-sheets/google-sheets.module';
+import { PrismaService } from './prisma/prisma.service';
 
 @Module({
   imports: [
@@ -33,12 +35,14 @@ import { RolesModule } from './roles/roles.module';
     AuthModule,
     UsersModule,
     RolesModule,
+    GoogleSheetsModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    PrismaService,
   ],
 })
 export class AppModule {}

@@ -1,30 +1,44 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RoleType } from '@prisma/client';
+import { RoleType } from './role-type.enum';
+import type { Role } from '../../prisma/generated/client';
 
 @Injectable()
 export class RolesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async create(data: { name: RoleType; description?: string }): Promise<Role> {
+    return this.prisma.role.create({
+      data,
+    });
+  }
+
+  async findByName(name: RoleType): Promise<Role | null> {
+    return this.prisma.role.findFirst({
+      where: { name },
+    });
+  }
+
+  async findAll(): Promise<Role[]> {
     return this.prisma.role.findMany();
   }
 
-  async findOne(id: string) {
-    const role = await this.prisma.role.findUnique({ where: { id } });
-    if (!role) throw new NotFoundException('Role not found');
-    return role;
+  async findOne(id: string): Promise<Role | null> {
+    return this.prisma.role.findUnique({
+      where: { id },
+    });
   }
 
-  async create(data: { name: RoleType; description?: string }) {
-    return this.prisma.role.create({ data });
+  async update(id: string, data: { name?: RoleType; description?: string }): Promise<Role> {
+    return this.prisma.role.update({
+      where: { id },
+      data,
+    });
   }
 
-  async update(id: string, data: { name?: RoleType; description?: string }) {
-    return this.prisma.role.update({ where: { id }, data });
-  }
-
-  async remove(id: string) {
-    return this.prisma.role.delete({ where: { id } });
+  async remove(id: string): Promise<Role> {
+    return this.prisma.role.delete({
+      where: { id },
+    });
   }
 } 

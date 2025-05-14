@@ -106,4 +106,12 @@ model Role {
   updatedAt   DateTime @updatedAt
 
   @@map("roles")
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 } 
