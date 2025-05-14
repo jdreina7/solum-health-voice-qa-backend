@@ -30,10 +30,11 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`Application is running on: ${await app.getUrl()}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Port: ${port}`);
   console.log(`Global prefix: api/v1`);
+  console.log(`Host: 0.0.0.0`);
 }
 bootstrap();
