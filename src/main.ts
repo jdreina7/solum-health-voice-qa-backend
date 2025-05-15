@@ -6,9 +6,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Setting the global prefix
-  app.setGlobalPrefix('api/v1');
-
   // Configurar CORS
   app.enableCors({
     origin: true, // Permite todas las origenes
@@ -41,7 +38,6 @@ async function bootstrap() {
   console.log(`📡 URL: ${await app.getUrl()}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
   console.log(`🔌 Port: ${port}`);
-  console.log(`🔗 Global prefix: api/v1`);
   console.log(`🏠 Host: 0.0.0.0`);
   console.log('=================================');
 }
