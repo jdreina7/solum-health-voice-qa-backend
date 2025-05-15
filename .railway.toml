@@ -3,4 +3,6 @@ builder = "node"
 buildCommand = "npm run build"
 
 [deploy]
-startCommand = "npm run start:prod"
+startCommand = "node dist/src/main.js"
+
+
