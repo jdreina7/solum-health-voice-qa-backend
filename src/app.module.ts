@@ -15,6 +15,7 @@ import { GoogleSheetsModule } from './google-sheets/google-sheets.module';
 import { PrismaService } from './prisma/prisma.service';
 import { LoginModule } from './login/login.module';
 import { JwtModule } from '@nestjs/jwt';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { JwtModule } from '@nestjs/jwt';
     RolesModule,
     GoogleSheetsModule,
     LoginModule,
+    DashboardModule,
   ],
   providers: [
     {
